@@ -340,7 +340,28 @@ void luaD_call(lua_State* L, StkId func, int nresults)
     luaC_checkGC(L);
 }
 
-void seterrorobj(lua_State* L, int errcode, StkId oldtop)
+// Non-yieldable version of luaD_call, used primarily to call an error handler which cannot yield
+void luaD_callny(lua_State* L, StkId func, int nresults)
+{
+    if (++L->nCcalls >= LUAI_MAXCCALLS)
+        luaD_checkCstack(L);
+
+    LUAU_ASSERT(L->nCcalls > L->baseCcalls);
+
+    ptrdiff_t funcoffset = savestack(L, func);
+
+    performcall(L, func, nresults);
+
+    LUAU_ASSERT(L->status != LUA_YIELD && L->status != LUA_BREAK);
+
+    if (nresults != LUA_MULTRET)
+        L->top = restorestack(L, funcoffset) + nresults;
+
+    L->nCcalls--;
+    luaC_checkGC(L);
+}
+
+void luaD_seterrorobj(lua_State* L, int errcode, StkId oldtop)
 {
     switch (errcode)
     {
