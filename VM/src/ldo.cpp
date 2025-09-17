@@ -379,7 +379,7 @@ void luaD_callny(lua_State* L, StkId func, int nresults)
     luaC_checkGC(L);
 }
 
-void luaD_luaD_seterrorobj(lua_State* L, int errcode, StkId oldtop)
+void luaD_seterrorobj(lua_State* L, int errcode, StkId oldtop)
 {
     switch (errcode)
     {
