@@ -11,15 +11,9 @@ using namespace Luau;
 
 LUAU_FASTFLAG(LuauSolverV2)
 LUAU_FASTFLAG(LuauTableCloneClonesType3)
-LUAU_FASTFLAG(LuauEagerGeneralization4)
-LUAU_FASTFLAG(LuauArityMismatchOnUndersaturatedUnknownArguments)
-LUAU_FASTFLAG(LuauStringFormatImprovements)
-LUAU_FASTFLAG(LuauRemoveTypeCallsForReadWriteProps)
-LUAU_FASTFLAG(LuauWriteOnlyPropertyMangling)
-LUAU_FASTFLAG(LuauEnableWriteOnlyProperties)
-LUAU_FASTFLAG(LuauTableLiteralSubtypeCheckFunctionCalls)
-LUAU_FASTFLAG(LuauTypeCheckerStricterIndexCheck)
-LUAU_FASTFLAG(LuauSuppressErrorsForMultipleNonviableOverloads)
+LUAU_FASTFLAG(LuauNoScopeShallNotSubsumeAll)
+LUAU_FASTFLAG(LuauSolverAgnosticStringification)
+LUAU_FASTFLAG(LuauSolverAgnosticSetType)
 
 TEST_SUITE_BEGIN("BuiltinTests");
 
@@ -378,6 +372,7 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "setmetatable_unpacks_arg_types_correctly")
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "setmetatable_on_union_of_tables")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     CheckResult result = check(R"(
         type A = {tag: "A", x: number}
         type B = {tag: "B", y: string}
@@ -390,8 +385,10 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "setmetatable_on_union_of_tables")
     )");
 
     LUAU_REQUIRE_NO_ERRORS(result);
-
-    CHECK("{ @metatable {  }, A } | { @metatable {  }, B }" == toString(requireTypeAlias("X")));
+    if (FFlag::LuauSolverV2)
+        CHECK("{ @metatable {  }, A } | { @metatable {  }, B }" == toString(requireTypeAlias("X")));
+    else
+        CHECK("{ @metatable {|  |}, A } | { @metatable {|  |}, B }" == toString(requireTypeAlias("X")));
 }
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "table_insert_correctly_infers_type_of_array_2_args_overload")
@@ -420,19 +417,18 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "table_insert_correctly_infers_type_of_array_
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "table_pack")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     CheckResult result = check(R"(
         local t = table.pack(1, "foo", true)
     )");
 
     LUAU_REQUIRE_NO_ERRORS(result);
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ("{ [number]: boolean | number | string, n: number }", toString(requireType("t")));
-    else
-        CHECK_EQ("{| [number]: boolean | number | string, n: number |}", toString(requireType("t")));
+    CHECK_EQ("{ [number]: boolean | number | string, n: number }", toString(requireType("t")));
 }
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "table_pack_variadic")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     CheckResult result = check(R"(
 --!strict
 function f(): (string, ...number)
@@ -443,33 +439,25 @@ local t = table.pack(f())
     )");
 
     LUAU_REQUIRE_NO_ERRORS(result);
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ("{ [number]: number | string, n: number }", toString(requireType("t")));
-    else
-        CHECK_EQ("{| [number]: number | string, n: number |}", toString(requireType("t")));
+    CHECK_EQ("{ [number]: number | string, n: number }", toString(requireType("t")));
 }
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "table_pack_reduce")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     CheckResult result = check(R"(
         local t = table.pack(1, 2, true)
     )");
 
     LUAU_REQUIRE_NO_ERRORS(result);
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ("{ [number]: boolean | number, n: number }", toString(requireType("t")));
-    else
-        CHECK_EQ("{| [number]: boolean | number, n: number |}", toString(requireType("t")));
+    CHECK_EQ("{ [number]: boolean | number, n: number }", toString(requireType("t")));
 
     result = check(R"(
         local t = table.pack("a", "b", "c")
     )");
 
     LUAU_REQUIRE_NO_ERRORS(result);
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ("{ [number]: string, n: number }", toString(requireType("t")));
-    else
-        CHECK_EQ("{| [number]: string, n: number |}", toString(requireType("t")));
+    CHECK_EQ("{ [number]: string, n: number }", toString(requireType("t")));
 }
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "gcinfo")
@@ -714,18 +702,11 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "bad_select_should_not_crash")
         end
     )");
 
-    if (FFlag::LuauSolverV2 && FFlag::LuauArityMismatchOnUndersaturatedUnknownArguments)
+    if (FFlag::LuauSolverV2)
     {
         LUAU_REQUIRE_ERROR_COUNT(2, result);
         CHECK_EQ("Argument count mismatch. Function expects at least 1 argument, but none are specified", toString(result.errors[0]));
         CHECK_EQ("Argument count mismatch. Function expects at least 1 argument, but none are specified", toString(result.errors[1]));
-    }
-    else if (FFlag::LuauSolverV2)
-    {
-        // Counterintuitively, the parameter l0 is unconstrained and therefore it is valid to pass nil.
-        // The new solver therefore considers that parameter to be optional.
-        LUAU_REQUIRE_ERROR_COUNT(1, result);
-        CHECK("Argument count mismatch. Function expects at least 1 argument, but none are specified" == toString(result.errors[0]));
     }
     else
     {
@@ -1125,6 +1106,7 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "assert_returns_false_and_string_iff_it_knows
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "table_freeze_is_generic")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     CheckResult result = check(R"(
         local t1: {a: number} = {a = 42}
         local t2: {b: string} = {b = "hello"}
@@ -1149,7 +1131,7 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "table_freeze_is_generic")
     if (FFlag::LuauSolverV2)
         CHECK("Key 'b' not found in table '{ read a: number }'" == toString(result.errors[0]));
     else
-        CHECK_EQ("Key 'b' not found in table '{| a: number |}'", toString(result.errors[0]));
+        CHECK_EQ("Key 'b' not found in table '{ a: number }'", toString(result.errors[0]));
     CHECK(Location({13, 18}, {13, 23}) == result.errors[0].location);
 
     if (FFlag::LuauSolverV2)
@@ -1318,14 +1300,10 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "no_persistent_typelevel_change")
     REQUIRE(mathTy);
     TableType* ttv = getMutable<TableType>(mathTy);
     REQUIRE(ttv);
-    const FunctionType* ftv;
-    if (FFlag::LuauRemoveTypeCallsForReadWriteProps)
-    {
-        REQUIRE(ttv->props["frexp"].readTy);
-        ftv = get<FunctionType>(*ttv->props["frexp"].readTy);
-    }
-    else
-        ftv = get<FunctionType>(ttv->props["frexp"].type_DEPRECATED());
+
+    REQUIRE(ttv->props["frexp"].readTy);
+    const FunctionType* ftv = get<FunctionType>(*ttv->props["frexp"].readTy);
+
     REQUIRE(ftv);
     auto original = ftv->level;
 
@@ -1609,6 +1587,9 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "string_find_should_not_crash")
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "table_dot_clone_type_states")
 {
+    ScopedFastFlag sff[] = {
+        {FFlag::LuauSolverAgnosticStringification, true}, {FFlag::LuauSolverAgnosticSetType, true}, {FFlag::LuauTableCloneClonesType3, true}
+    };
     CheckResult result = check(R"(
         local t1 = {}
         t1.x = 5
@@ -1619,15 +1600,15 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "table_dot_clone_type_states")
 
     LUAU_REQUIRE_NO_ERRORS(result);
 
-    if (FFlag::LuauTableCloneClonesType3)
+    if (FFlag::LuauSolverV2)
     {
         CHECK_EQ(toString(requireType("t1"), {true}), "{ x: number, z: number }");
         CHECK_EQ(toString(requireType("t2"), {true}), "{ x: number, y: number }");
     }
     else
     {
-        CHECK_EQ(toString(requireType("t1"), {true}), "{ x: number, y: number, z: number }");
-        CHECK_EQ(toString(requireType("t2"), {true}), "{ x: number, y: number, z: number }");
+        CHECK_EQ(toString(requireType("t1"), {true}), "{| x: number, z: number |}");
+        CHECK_EQ(toString(requireType("t2"), {true}), "{| x: number, y: number |}");
     }
 }
 
@@ -1680,7 +1661,6 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "string_format_should_support_any")
 TEST_CASE_FIXTURE(BuiltinsFixture, "string_format_should_support_any_2")
 {
     ScopedFastFlag _{FFlag::LuauSolverV2, true};
-    ScopedFastFlag sff{FFlag::LuauStringFormatImprovements, true};
 
     CheckResult result = check(R"(
         local fmt = "Hello, %s!" :: any
@@ -1696,7 +1676,6 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "string_format_should_support_any_2")
 TEST_CASE_FIXTURE(BuiltinsFixture, "string_format_should_support_singleton_types")
 {
     ScopedFastFlag _{FFlag::LuauSolverV2, true};
-    ScopedFastFlag sff{FFlag::LuauStringFormatImprovements, true};
 
     CheckResult result = check(R"(
         local fmt: "Hello, %s!" = "Hello, %s!"
@@ -1714,7 +1693,6 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "string_format_should_support_singleton_types
 TEST_CASE_FIXTURE(BuiltinsFixture, "better_string_format_error_when_format_string_is_dynamic")
 {
     ScopedFastFlag _{FFlag::LuauSolverV2, true};
-    ScopedFastFlag sff{FFlag::LuauStringFormatImprovements, true};
 
     CheckResult result = check(R"(
         local fmt: string = "Hello, %s!"
@@ -1732,12 +1710,7 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "better_string_format_error_when_format_strin
 
 TEST_CASE_FIXTURE(Fixture, "write_only_table_assertion")
 {
-    ScopedFastFlag sffs[] = {
-        {FFlag::LuauSolverV2, true},
-        {FFlag::LuauEnableWriteOnlyProperties, true},
-        {FFlag::LuauWriteOnlyPropertyMangling, true},
-        {FFlag::LuauTableLiteralSubtypeCheckFunctionCalls, true},
-    };
+    ScopedFastFlag sff{FFlag::LuauSolverV2, true};
 
     LUAU_REQUIRE_NO_ERRORS(check(R"(
         local function accept(t: { write foo: number })
@@ -1749,11 +1722,26 @@ TEST_CASE_FIXTURE(Fixture, "write_only_table_assertion")
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "table_insert_into_any")
 {
-    ScopedFastFlag _{FFlag::LuauSuppressErrorsForMultipleNonviableOverloads, true};
-
     LUAU_REQUIRE_NO_ERRORS(check(R"(
 table.insert(1::any, 2::any)
     )"));
+}
+
+TEST_CASE_FIXTURE(BuiltinsFixture, "table_insert_requires_all_fields")
+{
+    ScopedFastFlag _{FFlag::LuauNoScopeShallNotSubsumeAll, true};
+
+    CheckResult result = check(R"(
+        local function huh(): { { x: number, y: string } }
+            local ret = {}
+            while true do
+                table.insert(ret, { x = 42 })
+            end
+            return ret
+        end
+    )");
+
+    LUAU_REQUIRE_ERRORS(result);
 }
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "read_refinements_on_persistent_tables_known_property_identity")
@@ -1767,8 +1755,6 @@ TEST_CASE_FIXTURE(BuiltinsFixture, "read_refinements_on_persistent_tables_known_
 
 TEST_CASE_FIXTURE(BuiltinsFixture, "read_refinements_on_persistent_tables_unknown_property")
 {
-    ScopedFastFlag _{FFlag::LuauTypeCheckerStricterIndexCheck, true};
-
     CheckResult results = check(R"(
         if bit32.scrambleEggs then
         end

@@ -16,8 +16,7 @@ using namespace Luau;
 LUAU_FASTFLAG(LuauSolverV2);
 LUAU_FASTFLAG(DebugLuauFreezeArena)
 LUAU_FASTFLAG(DebugLuauMagicTypes)
-LUAU_FASTFLAG(LuauNewNonStrictVisitTypes2)
-LUAU_FASTFLAG(LuauTableLiteralSubtypeSpecificCheck2)
+LUAU_FASTFLAG(LuauSolverAgnosticStringification)
 
 namespace
 {
@@ -57,10 +56,17 @@ struct NaiveFileResolver : NullFileResolver
 
 struct FrontendFixture : BuiltinsFixture
 {
-    FrontendFixture()
+    FrontendFixture() = default;
+
+    Frontend& getFrontend() override
     {
-        addGlobalBinding(getFrontend().globals, "game", getBuiltins()->anyType, "@test");
-        addGlobalBinding(getFrontend().globals, "script", getBuiltins()->anyType, "@test");
+        if (frontend)
+            return *frontend;
+
+        Frontend& f = BuiltinsFixture::getFrontend();
+        addGlobalBinding(f.globals, "game", f.builtinTypes->anyType, "@test");
+        addGlobalBinding(f.globals, "script", f.builtinTypes->anyType, "@test");
+        return *frontend;
     }
 };
 
@@ -121,6 +127,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "real_source")
 
 TEST_CASE_FIXTURE(FrontendFixture, "automatically_check_dependent_scripts")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     fileResolver.source["game/Gui/Modules/A"] = "return {hello=5, world=true}";
     fileResolver.source["game/Gui/Modules/B"] = R"(
         local Modules = game:GetService('Gui').Modules
@@ -138,10 +145,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "automatically_check_dependent_scripts")
     auto bExports = first(bModule->returnType);
     REQUIRE(!!bExports);
 
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ("{ b_value: number }", toString(*bExports));
-    else
-        CHECK_EQ("{| b_value: number |}", toString(*bExports));
+    CHECK_EQ("{ b_value: number }", toString(*bExports));
 }
 
 TEST_CASE_FIXTURE(FrontendFixture, "automatically_check_cyclically_dependent_scripts")
@@ -256,6 +260,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "cycle_detection_between_check_and_nocheck")
 
 TEST_CASE_FIXTURE(FrontendFixture, "nocheck_cycle_used_by_checked")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     fileResolver.source["game/Gui/Modules/A"] = R"(
         --!nocheck
         local Modules = game:GetService('Gui').Modules
@@ -285,10 +290,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "nocheck_cycle_used_by_checked")
     std::optional<TypeId> cExports = first(cModule->returnType);
     REQUIRE(bool(cExports));
 
-    if (FFlag::LuauSolverV2)
-        CHECK("{ a: { hello: any }, b: { hello: any } }" == toString(*cExports));
-    else
-        CHECK("{| a: {| hello: any |}, b: {| hello: any |} |}" == toString(*cExports));
+    CHECK("{ a: { hello: any }, b: { hello: any } }" == toString(*cExports));
 }
 
 TEST_CASE_FIXTURE(FrontendFixture, "cycle_detection_disabled_in_nocheck")
@@ -372,6 +374,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "cycle_error_paths")
 
 TEST_CASE_FIXTURE(FrontendFixture, "cycle_incremental_type_surface")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     fileResolver.source["game/A"] = R"(
         return {hello = 2}
     )";
@@ -432,6 +435,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "cycle_incremental_type_surface_longer")
 
 TEST_CASE_FIXTURE(FrontendFixture, "cycle_incremental_type_surface_exports")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     fileResolver.source["game/A"] = R"(
 local b = require(game.B)
 export type atype = { x: b.btype }
@@ -459,32 +463,20 @@ return {mod_b = 2}
     LUAU_REQUIRE_ERRORS(resultB);
 
     TypeId tyB = requireExportedType("game/B", "btype");
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ(toString(tyB, opts), "{ x: number }");
-    else
-        CHECK_EQ(toString(tyB, opts), "{| x: number |}");
+    CHECK_EQ(toString(tyB, opts), "{ x: number }");
 
     TypeId tyA = requireExportedType("game/A", "atype");
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ(toString(tyA, opts), "{ x: any }");
-    else
-        CHECK_EQ(toString(tyA, opts), "{| x: any |}");
+    CHECK_EQ(toString(tyA, opts), "{ x: any }");
 
     getFrontend().markDirty("game/B");
     resultB = getFrontend().check("game/B");
     LUAU_REQUIRE_ERRORS(resultB);
 
     tyB = requireExportedType("game/B", "btype");
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ(toString(tyB, opts), "{ x: number }");
-    else
-        CHECK_EQ(toString(tyB, opts), "{| x: number |}");
+    CHECK_EQ(toString(tyB, opts), "{ x: number }");
 
     tyA = requireExportedType("game/A", "atype");
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ(toString(tyA, opts), "{ x: any }");
-    else
-        CHECK_EQ(toString(tyA, opts), "{| x: any |}");
+    CHECK_EQ(toString(tyA, opts), "{ x: any }");
 }
 
 TEST_CASE_FIXTURE(FrontendFixture, "dont_reparse_clean_file_when_linting")
@@ -536,6 +528,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "dont_recheck_script_that_hasnt_been_marked_d
 
 TEST_CASE_FIXTURE(FrontendFixture, "recheck_if_dependent_script_is_dirty")
 {
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     fileResolver.source["game/Gui/Modules/A"] = "return {hello=5, world=true}";
     fileResolver.source["game/Gui/Modules/B"] = R"(
         local Modules = game:GetService('Gui').Modules
@@ -557,10 +550,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "recheck_if_dependent_script_is_dirty")
     auto bExports = first(bModule->returnType);
     REQUIRE(!!bExports);
 
-    if (FFlag::LuauSolverV2)
-        CHECK_EQ("{ b_value: string }", toString(*bExports));
-    else
-        CHECK_EQ("{| b_value: string |}", toString(*bExports));
+    CHECK_EQ("{ b_value: string }", toString(*bExports));
 }
 
 TEST_CASE_FIXTURE(FrontendFixture, "mark_non_immediate_reverse_deps_as_dirty")
@@ -624,7 +614,8 @@ TEST_CASE_FIXTURE(FrontendFixture, "produce_errors_for_unchanged_file_with_error
 
     getFrontend().check("Modules/A");
 
-    fileResolver.source["Modules/A"] = "local p = 4 -- We have fixed the problem, but we didn't tell the getFrontend(). so it will not recheck this file!";
+    fileResolver.source["Modules/A"] =
+        "local p = 4 -- We have fixed the problem, but we didn't tell the getFrontend(). so it will not recheck this file!";
     CheckResult secondResult = getFrontend().check("Modules/A");
 
     CHECK_EQ(1, secondResult.errors.size());
@@ -877,8 +868,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "discard_type_graphs")
 
 TEST_CASE_FIXTURE(FrontendFixture, "it_should_be_safe_to_stringify_errors_when_full_type_graph_is_discarded")
 {
-    ScopedFastFlag _{FFlag::LuauTableLiteralSubtypeSpecificCheck2, true};
-
+    ScopedFastFlag sff{FFlag::LuauSolverAgnosticStringification, true};
     Frontend fe{&fileResolver, &configResolver, {false}};
 
     fileResolver.source["Module/A"] = R"(
@@ -902,7 +892,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "it_should_be_safe_to_stringify_errors_when_f
     }
     else
         REQUIRE_EQ(
-            "Table type 'a' not compatible with type '{| Count: number |}' because the former is missing field 'Count'", toString(result.errors[0])
+            "Table type 'a' not compatible with type '{ Count: number }' because the former is missing field 'Count'", toString(result.errors[0])
         );
 }
 
@@ -977,10 +967,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "environments")
     LUAU_REQUIRE_NO_ERRORS(resultA);
 
     CheckResult resultB = getFrontend().check("B");
-    if (FFlag::LuauSolverV2 && !FFlag::LuauNewNonStrictVisitTypes2)
-        LUAU_REQUIRE_NO_ERRORS(resultB);
-    else
-        LUAU_REQUIRE_ERROR_COUNT(1, resultB);
+    LUAU_REQUIRE_ERROR_COUNT(1, resultB);
 
     CheckResult resultC = getFrontend().check("C");
     LUAU_REQUIRE_ERROR_COUNT(1, resultC);
@@ -1359,7 +1346,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "separate_caches_for_autocomplete")
 
     FrontendOptions opts;
     opts.forAutocomplete = true;
-    getFrontend().setLuauSolverSelectionFromWorkspace(FFlag::LuauSolverV2 ? SolverMode::New : SolverMode::Old);
+    getFrontend().setLuauSolverMode(FFlag::LuauSolverV2 ? SolverMode::New : SolverMode::Old);
     getFrontend().check("game/A", opts);
 
     CHECK(nullptr == getFrontend().moduleResolver.getModule("game/A"));
@@ -1731,7 +1718,7 @@ TEST_CASE_FIXTURE(FrontendFixture, "test_dependents_stored_on_node_as_graph_upda
 TEST_CASE_FIXTURE(FrontendFixture, "test_invalid_dependency_tracking_per_module_resolver")
 {
     ScopedFastFlag newSolver{FFlag::LuauSolverV2, false};
-    getFrontend().setLuauSolverSelectionFromWorkspace(FFlag::LuauSolverV2 ? SolverMode::New : SolverMode::Old);
+    getFrontend().setLuauSolverMode(FFlag::LuauSolverV2 ? SolverMode::New : SolverMode::Old);
 
     fileResolver.source["game/Gui/Modules/A"] = "return {hello=5, world=true}";
     fileResolver.source["game/Gui/Modules/B"] = "return require(game:GetService('Gui').Modules.A)";
