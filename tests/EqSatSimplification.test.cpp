@@ -135,7 +135,9 @@ TEST_CASE_FIXTURE(ESFixture, "string | never")
 
 TEST_CASE_FIXTURE(ESFixture, "string | never | number")
 {
-    CHECK("number | string" == simplifyStr(arena->addType(UnionType{{getBuiltins()->stringType, getBuiltins()->neverType, getBuiltins()->numberType}})));
+    CHECK(
+        "number | string" == simplifyStr(arena->addType(UnionType{{getBuiltins()->stringType, getBuiltins()->neverType, getBuiltins()->numberType}}))
+    );
 }
 
 TEST_CASE_FIXTURE(ESFixture, "string & string")
@@ -161,9 +163,10 @@ TEST_CASE_FIXTURE(ESFixture, "never & string")
 TEST_CASE_FIXTURE(ESFixture, "string & (unknown | never)")
 {
     CHECK(
-        "string" == simplifyStr(arena->addType(
-                        IntersectionType{{getBuiltins()->stringType, arena->addType(UnionType{{getBuiltins()->unknownType, getBuiltins()->neverType}})}}
-                    ))
+        "string" ==
+        simplifyStr(arena->addType(
+            IntersectionType{{getBuiltins()->stringType, arena->addType(UnionType{{getBuiltins()->unknownType, getBuiltins()->neverType}})}}
+        ))
     );
 }
 
@@ -215,28 +218,32 @@ TEST_CASE_FIXTURE(ESFixture, "\"hello\" | string")
 TEST_CASE_FIXTURE(ESFixture, "\"hello\" | \"world\" | \"hello\"")
 {
     CHECK(
-        "\"hello\" | \"world\"" == simplifyStr(arena->addType(UnionType{{
-                                       arena->addType(SingletonType{StringSingleton{"hello"}}),
-                                       arena->addType(SingletonType{StringSingleton{"world"}}),
-                                       arena->addType(SingletonType{StringSingleton{"hello"}}),
-                                   }}))
+        "\"hello\" | \"world\"" == simplifyStr(arena->addType(
+                                       UnionType{{
+                                           arena->addType(SingletonType{StringSingleton{"hello"}}),
+                                           arena->addType(SingletonType{StringSingleton{"world"}}),
+                                           arena->addType(SingletonType{StringSingleton{"hello"}}),
+                                       }}
+                                   ))
     );
 }
 
 TEST_CASE_FIXTURE(ESFixture, "nil | boolean | number | string | thread | function | table | class | buffer")
 {
     CHECK(
-        "unknown" == simplifyStr(arena->addType(UnionType{{
-                         getBuiltins()->nilType,
-                         getBuiltins()->booleanType,
-                         getBuiltins()->numberType,
-                         getBuiltins()->stringType,
-                         getBuiltins()->threadType,
-                         getBuiltins()->functionType,
-                         getBuiltins()->tableType,
-                         getBuiltins()->externType,
-                         getBuiltins()->bufferType,
-                     }}))
+        "unknown" == simplifyStr(arena->addType(
+                         UnionType{{
+                             getBuiltins()->nilType,
+                             getBuiltins()->booleanType,
+                             getBuiltins()->numberType,
+                             getBuiltins()->stringType,
+                             getBuiltins()->threadType,
+                             getBuiltins()->functionType,
+                             getBuiltins()->tableType,
+                             getBuiltins()->externType,
+                             getBuiltins()->bufferType,
+                         }}
+                     ))
     );
 }
 
@@ -283,12 +290,14 @@ TEST_CASE_FIXTURE(ESFixture, "never | Parent | Unrelated")
 TEST_CASE_FIXTURE(ESFixture, "never | Parent | (number & string) | Unrelated")
 {
     CHECK(
-        "Parent | Unrelated" == simplifyStr(arena->addType(UnionType{
-                                    {getBuiltins()->neverType,
-                                     parentClass,
-                                     arena->addType(IntersectionType{{getBuiltins()->numberType, getBuiltins()->stringType}}),
-                                     unrelatedClass}
-                                }))
+        "Parent | Unrelated" == simplifyStr(arena->addType(
+                                    UnionType{
+                                        {getBuiltins()->neverType,
+                                         parentClass,
+                                         arena->addType(IntersectionType{{getBuiltins()->numberType, getBuiltins()->stringType}}),
+                                         unrelatedClass}
+                                    }
+                                ))
     );
 }
 
@@ -304,16 +313,18 @@ TEST_CASE_FIXTURE(ESFixture, "boolean & true")
 
 TEST_CASE_FIXTURE(ESFixture, "boolean & (true | number | string | thread | function | table | class | buffer)")
 {
-    TypeId truthy = arena->addType(UnionType{{
-        getBuiltins()->trueType,
-        getBuiltins()->numberType,
-        getBuiltins()->stringType,
-        getBuiltins()->threadType,
-        getBuiltins()->functionType,
-        getBuiltins()->tableType,
-        getBuiltins()->externType,
-        getBuiltins()->bufferType,
-    }});
+    TypeId truthy = arena->addType(
+        UnionType{{
+            getBuiltins()->trueType,
+            getBuiltins()->numberType,
+            getBuiltins()->stringType,
+            getBuiltins()->threadType,
+            getBuiltins()->functionType,
+            getBuiltins()->tableType,
+            getBuiltins()->externType,
+            getBuiltins()->bufferType,
+        }}
+    );
 
     CHECK("true" == simplifyStr(arena->addType(IntersectionType{{getBuiltins()->booleanType, truthy}})));
 }
@@ -385,8 +396,9 @@ TEST_CASE_FIXTURE(ESFixture, "add<number, number>")
 TEST_CASE_FIXTURE(ESFixture, "union<number, number>")
 {
     CHECK(
-        "number" ==
-        simplifyStr(arena->addType(TypeFunctionInstanceType{builtinTypeFunctions().unionFunc, {getBuiltins()->numberType, getBuiltins()->numberType}}))
+        "number" == simplifyStr(arena->addType(
+                        TypeFunctionInstanceType{builtinTypeFunctions().unionFunc, {getBuiltins()->numberType, getBuiltins()->numberType}}
+                    ))
     );
 }
 
@@ -419,7 +431,9 @@ TEST_CASE_FIXTURE(ESFixture, "blocked & ~number & function")
 TEST_CASE_FIXTURE(ESFixture, "(number | boolean | string | nil | table) & (false | nil)")
 {
     const TypeId t1 = arena->addType(
-        UnionType{{getBuiltins()->numberType, getBuiltins()->booleanType, getBuiltins()->stringType, getBuiltins()->nilType, getBuiltins()->tableType}}
+        UnionType{
+            {getBuiltins()->numberType, getBuiltins()->booleanType, getBuiltins()->stringType, getBuiltins()->nilType, getBuiltins()->tableType}
+        }
     );
 
     CHECK("false?" == simplifyStr(arena->addType(IntersectionType{{t1, getBuiltins()->falsyType}})));
@@ -689,7 +703,8 @@ TEST_CASE_FIXTURE(ESFixture, "lt<number, _> == boolean")
 TEST_CASE_FIXTURE(ESFixture, "unknown & ~string")
 {
     CHECK_EQ(
-        "~string", simplifyStr(arena->addType(IntersectionType{{getBuiltins()->unknownType, arena->addType(NegationType{getBuiltins()->stringType})}}))
+        "~string",
+        simplifyStr(arena->addType(IntersectionType{{getBuiltins()->unknownType, arena->addType(NegationType{getBuiltins()->stringType})}}))
     );
 }
 

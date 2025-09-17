@@ -16,14 +16,13 @@
 #include "Luau/TypeOrPack.h"
 
 #include <algorithm>
-#include <stdexcept>
 #include <string>
 
 LUAU_FASTFLAGVARIABLE(LuauEnableDenseTableAlias)
 
 LUAU_FASTFLAG(LuauSolverV2)
-LUAU_FASTFLAG(LuauRemoveTypeCallsForReadWriteProps)
 LUAU_FASTFLAGVARIABLE(LuauSolverAgnosticStringification)
+LUAU_FASTFLAG(LuauExplicitSkipBoundTypes)
 
 /*
  * Enables increasing levels of verbosity for Luau type names when stringifying.
@@ -43,7 +42,6 @@ LUAU_FASTFLAGVARIABLE(LuauSolverAgnosticStringification)
  */
 LUAU_FASTINTVARIABLE(DebugLuauVerboseTypeNames, 0)
 LUAU_FASTFLAGVARIABLE(DebugLuauToStringNoLexicalSort)
-LUAU_FASTFLAGVARIABLE(LuauFixEmptyTypePackStringification)
 
 namespace Luau
 {
@@ -53,7 +51,11 @@ namespace
 
 struct FindCyclicTypes final : TypeVisitor
 {
-    FindCyclicTypes() = default;
+    FindCyclicTypes()
+        : TypeVisitor("FindCyclicTypes", FFlag::LuauExplicitSkipBoundTypes)
+    {
+    }
+
     FindCyclicTypes(const FindCyclicTypes&) = delete;
     FindCyclicTypes& operator=(const FindCyclicTypes&) = delete;
 
@@ -417,10 +419,7 @@ struct TypeStringifier
         if (prop.isShared())
         {
             emitKey(name);
-            if (FFlag::LuauRemoveTypeCallsForReadWriteProps)
-                stringify(*prop.readTy);
-            else
-                stringify(prop.type_DEPRECATED());
+            stringify(*prop.readTy);
             return;
         }
 
@@ -490,8 +489,7 @@ struct TypeStringifier
 
             bool wrap = !singleTp && get<TypePack>(follow(tp));
 
-            if (FFlag::LuauFixEmptyTypePackStringification)
-                wrap &= !isEmpty(tp);
+            wrap &= !isEmpty(tp);
 
             if (wrap)
                 state.emit("(");
@@ -590,7 +588,7 @@ struct TypeStringifier
         if (FFlag::LuauSolverAgnosticStringification && FInt::DebugLuauVerboseTypeNames >= 1)
             state.emit(ftv.polarity);
         else if (FFlag::LuauSolverV2 && FInt::DebugLuauVerboseTypeNames >= 1)
-            state.emit(ftv.polarity);            
+            state.emit(ftv.polarity);
 
 
         if (FInt::DebugLuauVerboseTypeNames >= 2)
@@ -739,7 +737,7 @@ struct TypeStringifier
 
         state.emit("(");
 
-        if (FFlag::LuauFixEmptyTypePackStringification && isEmpty(ftv.argTypes))
+        if (isEmpty(ftv.argTypes))
         {
             // if we've got an empty argument pack, we're done.
         }
@@ -750,7 +748,7 @@ struct TypeStringifier
 
         state.emit(") -> ");
 
-        bool plural = FFlag::LuauFixEmptyTypePackStringification ? !isEmpty(ftv.retTypes) : true;
+        bool plural = !isEmpty(ftv.retTypes);
 
         auto retBegin = begin(ftv.retTypes);
         auto retEnd = end(ftv.retTypes);
@@ -828,7 +826,9 @@ struct TypeStringifier
 
         std::string openbrace = "@@@";
         std::string closedbrace = "@@@?!";
-        switch (state.opts.hideTableKind ? ((FFlag::LuauSolverV2 || FFlag::LuauSolverAgnosticStringification) ? TableState::Sealed : TableState::Unsealed) : ttv.state)
+        switch (state.opts.hideTableKind
+                    ? ((FFlag::LuauSolverV2 || FFlag::LuauSolverAgnosticStringification) ? TableState::Sealed : TableState::Unsealed)
+                    : ttv.state)
         {
         case TableState::Sealed:
             if (FFlag::LuauSolverV2 || FFlag::LuauSolverAgnosticStringification)
@@ -1265,14 +1265,11 @@ struct TypePackStringifier
             return;
         }
 
-        if (FFlag::LuauFixEmptyTypePackStringification)
+        if (tp.head.empty() && (!tp.tail || isEmpty(*tp.tail)))
         {
-            if (tp.head.empty() && (!tp.tail || isEmpty(*tp.tail)))
-            {
-                state.emit("()");
-                state.unsee(&tp);
-                return;
-            }
+            state.emit("()");
+            state.unsee(&tp);
+            return;
         }
 
         bool first = true;
@@ -1822,34 +1819,18 @@ std::string toStringNamedFunction(const std::string& funcName, const FunctionTyp
 
     state.emit("): ");
 
-    if (FFlag::LuauFixEmptyTypePackStringification)
-    {
-        size_t retSize = size(ftv.retTypes);
-        bool hasTail = !finite(ftv.retTypes);
-        bool wrap = get<TypePack>(follow(ftv.retTypes)) && (hasTail ? retSize != 0 : retSize > 1);
+    size_t retSize = size(ftv.retTypes);
+    bool hasTail = !finite(ftv.retTypes);
+    bool wrap = get<TypePack>(follow(ftv.retTypes)) && (hasTail ? retSize != 0 : retSize > 1);
 
-        if (wrap)
-            state.emit("(");
+    if (wrap)
+        state.emit("(");
 
-        tvs.stringify(ftv.retTypes);
+    tvs.stringify(ftv.retTypes);
 
-        if (wrap)
-            state.emit(")");
-    }
-    else
-    {
-        size_t retSize = size(ftv.retTypes);
-        bool hasTail = !finite(ftv.retTypes);
-        bool wrap = get<TypePack>(follow(ftv.retTypes)) && (hasTail ? retSize != 0 : retSize != 1);
+    if (wrap)
+        state.emit(")");
 
-        if (wrap)
-            state.emit("(");
-
-        tvs.stringify(ftv.retTypes);
-
-        if (wrap)
-            state.emit(")");
-    }
 
     return result.name;
 }
@@ -1898,6 +1879,39 @@ std::string dump(const std::optional<TypePackId>& ty)
 
     printf("nullopt\n");
     return "nullopt";
+}
+
+std::string dump(const std::vector<TypeId>& types)
+{
+    return toStringVector(types, dumpOptions());
+}
+
+std::string dump(DenseHashMap<TypeId, TypeId>& types)
+{
+    std::string s = "{";
+    ToStringOptions& opts = dumpOptions();
+    for (const auto& [key, value] : types)
+    {
+        if (s.length() > 1)
+            s += ", ";
+        s += toString(key, opts) + " : " + toString(value, opts);
+    }
+    s += "}";
+    return s;
+}
+
+std::string dump(DenseHashMap<TypePackId, TypePackId>& types)
+{
+    std::string s = "{";
+    ToStringOptions& opts = dumpOptions();
+    for (const auto& [key, value] : types)
+    {
+        if (s.length() > 1)
+            s += ", ";
+        s += toString(key, opts) + " : " + toString(value, opts);
+    }
+    s += "}";
+    return s;
 }
 
 std::string dump(const ScopePtr& scope, const char* name)
@@ -1999,14 +2013,17 @@ std::string toString(const Constraint& constraint, ToStringOptions& opts)
         }
         else if constexpr (std::is_same_v<T, HasPropConstraint>)
         {
-            return tos(c.resultType) + " ~ hasProp " + tos(c.subjectType) + ", \"" + c.prop + "\" ctx=" + std::to_string(int(c.context));
+            std::string s = tos(c.resultType) + " ~ hasProp " + tos(c.subjectType) + ", \"" + c.prop + "\" ctx=" + std::to_string(int(c.context));
+            if (c.inConditional)
+                s += " (inConditional)";
+            return s;
         }
         else if constexpr (std::is_same_v<T, HasIndexerConstraint>)
         {
             return tos(c.resultType) + " ~ hasIndexer " + tos(c.subjectType) + " " + tos(c.indexType);
         }
         else if constexpr (std::is_same_v<T, AssignPropConstraint>)
-            return tos(c.propType) +  " ~ assignProp " + tos(c.lhsType) + " " + c.propName + " " + tos(c.rhsType);
+            return tos(c.propType) + " ~ assignProp " + tos(c.lhsType) + " " + c.propName + " " + tos(c.rhsType);
         else if constexpr (std::is_same_v<T, AssignIndexConstraint>)
             return "assignIndex " + tos(c.lhsType) + " " + tos(c.indexType) + " " + tos(c.rhsType);
         else if constexpr (std::is_same_v<T, UnpackConstraint>)
@@ -2019,10 +2036,12 @@ std::string toString(const Constraint& constraint, ToStringOptions& opts)
         }
         else if constexpr (std::is_same_v<T, EqualityConstraint>)
             return "equality: " + tos(c.resultType) + " ~ " + tos(c.assignmentType);
-        else if constexpr (std::is_same_v<T, TableCheckConstraint>)
-            return "table_check " + tos(c.expectedType) + " :> " + tos(c.exprType);
         else if constexpr (std::is_same_v<T, SimplifyConstraint>)
             return "simplify " + tos(c.ty);
+        else if constexpr (std::is_same_v<T, PushFunctionTypeConstraint>)
+            return "push_function_type " + tos(c.expectedFunctionType) + " => " + tos(c.functionType);
+        else if constexpr (std::is_same_v<T, PushTypeConstraint>)
+            return "push_type " + tos(c.expectedType) + " => " + tos(c.targetType);
         else
             static_assert(always_false_v<T>, "Non-exhaustive constraint switch");
     };
