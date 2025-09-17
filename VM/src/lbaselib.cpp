@@ -409,7 +409,7 @@ int luaB_xpcallcont(lua_State* L, int status)
                     errstatus = LUA_ERRERR;
 
                 StkId oldtop = restorestack(L, oldtopoffset);
-                luaD_seterrorobj(L, errstatus, oldtop);
+                luaD_luaD_seterrorobj(L, errstatus, oldtop);
             }
         }
         else
