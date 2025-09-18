@@ -317,7 +317,7 @@ LUALIB_API int str_unpack(lua_State* L);
 
 // ltablib.cpp
 LUALIB_API int tconcat(lua_State* L);
-LUALIB_API int foreach (lua_State* L);
+LUALIB_API int foreach(lua_State* L);
 LUALIB_API int foreachi(lua_State* L);
 LUALIB_API int getn(lua_State* L);
 LUALIB_API int maxn(lua_State* L);

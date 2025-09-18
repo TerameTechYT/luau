@@ -149,7 +149,7 @@
     }
 
 #ifdef LUAI_GCMETRICS
-static void recordGcStateStep(global_State* g, int startgcstate, double seconds, bool assist, size_t work)
+void recordGcStateStep(global_State* g, int startgcstate, double seconds, bool assist, size_t work)
 {
     switch (startgcstate)
     {
@@ -197,7 +197,7 @@ static void recordGcStateStep(global_State* g, int startgcstate, double seconds,
     }
 }
 
-static double recordGcDeltaTime(double& timer)
+double recordGcDeltaTime(double& timer)
 {
     double now = lua_clock();
     double delta = now - timer;
@@ -205,13 +205,13 @@ static double recordGcDeltaTime(double& timer)
     return delta;
 }
 
-static void startGcCycleMetrics(global_State* g)
+void startGcCycleMetrics(global_State* g)
 {
     g->gcmetrics.currcycle.starttimestamp = lua_clock();
     g->gcmetrics.currcycle.pausetime = g->gcmetrics.currcycle.starttimestamp - g->gcmetrics.lastcycle.endtimestamp;
 }
 
-static void finishGcCycleMetrics(global_State* g)
+void finishGcCycleMetrics(global_State* g)
 {
     g->gcmetrics.currcycle.endtimestamp = lua_clock();
     g->gcmetrics.currcycle.endtotalsizebytes = g->totalbytes;
@@ -225,14 +225,14 @@ static void finishGcCycleMetrics(global_State* g)
 }
 #endif
 
-static void removeentry(LuaNode* n)
+void removeentry(LuaNode* n)
 {
     LUAU_ASSERT(ttisnil(gval(n)));
     if (iscollectable(gkey(n)))
         setttype(gkey(n), LUA_TDEADKEY); // dead key; remove it
 }
 
-static void reallymarkobject(global_State* g, GCObject* o)
+void reallymarkobject(global_State* g, GCObject* o)
 {
     LUAU_ASSERT(iswhite(o) && !isdead(g, o));
     white2gray(o);
@@ -292,7 +292,7 @@ static void reallymarkobject(global_State* g, GCObject* o)
     }
 }
 
-static const char* gettablemode(global_State* g, LuaTable* h)
+const char* gettablemode(global_State* g, LuaTable* h)
 {
     const TValue* mode = gfasttm(g, h->metatable, TM_MODE);
 
@@ -302,7 +302,7 @@ static const char* gettablemode(global_State* g, LuaTable* h)
     return NULL;
 }
 
-static int traversetable(global_State* g, LuaTable* h)
+int traversetable(global_State* g, LuaTable* h)
 {
     int i;
     int weakkey = 0;
@@ -353,7 +353,7 @@ static int traversetable(global_State* g, LuaTable* h)
 ** All marks are conditional because a GC may happen while the
 ** prototype is still being created
 */
-static void traverseproto(global_State* g, Proto* f)
+void traverseproto(global_State* g, Proto* f)
 {
     int i;
     if (f->source)
@@ -379,7 +379,7 @@ static void traverseproto(global_State* g, Proto* f)
     }
 }
 
-static void traverseclosure(global_State* g, Closure* cl)
+void traverseclosure(global_State* g, Closure* cl)
 {
     markobject(g, cl->env);
     if (cl->isC)
@@ -398,7 +398,7 @@ static void traverseclosure(global_State* g, Closure* cl)
     }
 }
 
-static void traversestack(global_State* g, lua_State* l)
+void traversestack(global_State* g, lua_State* l)
 {
     markobject(g, l->gt);
     if (l->namecall)
@@ -413,14 +413,14 @@ static void traversestack(global_State* g, lua_State* l)
     }
 }
 
-static void clearstack(lua_State* l)
+void clearstack(lua_State* l)
 {
     StkId stack_end = l->stack + l->stacksize;
     for (StkId o = l->top; o < stack_end; o++) // clear not-marked stack slice
         setnilvalue(o);
 }
 
-static void shrinkstack(lua_State* L)
+void shrinkstack(lua_State* L)
 {
     // compute used stack - note that we can't use th->top if we're in the middle of vararg call
     StkId lim = L->top;
@@ -446,7 +446,7 @@ static void shrinkstack(lua_State* L)
     condhardstacktests(luaD_reallocstack(L, s_used, 0));
 }
 
-static void shrinkstackprotected(lua_State* L)
+void shrinkstackprotected(lua_State* L)
 {
     struct CallContext
     {
@@ -465,7 +465,7 @@ static void shrinkstackprotected(lua_State* L)
 ** traverse one gray object, turning it to black.
 ** Returns `quantity' traversed.
 */
-static size_t propagatemark(global_State* g)
+size_t propagatemark(global_State* g)
 {
     GCObject* o = g->gray;
     LUAU_ASSERT(isgray(o));
@@ -531,7 +531,7 @@ static size_t propagatemark(global_State* g)
     }
 }
 
-static size_t propagateall(global_State* g)
+size_t propagateall(global_State* g)
 {
     size_t work = 0;
     while (g->gray)
@@ -547,7 +547,7 @@ static size_t propagateall(global_State* g)
 ** tables. Strings behave as `values', so are never removed too. for
 ** other objects: if really collected, cannot keep them.
 */
-static int isobjcleared(GCObject* o)
+int isobjcleared(GCObject* o)
 {
     if (o->gch.tt == LUA_TSTRING)
     {
@@ -560,7 +560,7 @@ static int isobjcleared(GCObject* o)
 
 #define iscleared(o) (iscollectable(o) && isobjcleared(gcvalue(o)))
 
-static void tableresizeprotected(lua_State* L, LuaTable* t, int nhsize)
+void tableresizeprotected(lua_State* L, LuaTable* t, int nhsize)
 {
     struct CallContext
     {
@@ -583,7 +583,7 @@ static void tableresizeprotected(lua_State* L, LuaTable* t, int nhsize)
 /*
 ** clear collected entries from weaktables
 */
-static size_t cleartable(lua_State* L, GCObject* l)
+size_t cleartable(lua_State* L, GCObject* l)
 {
     size_t work = 0;
     while (l)
@@ -636,7 +636,7 @@ static size_t cleartable(lua_State* L, GCObject* l)
     return work;
 }
 
-static void freeobj(lua_State* L, GCObject* o, lua_Page* page)
+void freeobj(lua_State* L, GCObject* o, lua_Page* page)
 {
     switch (o->gch.tt)
     {
@@ -670,7 +670,7 @@ static void freeobj(lua_State* L, GCObject* o, lua_Page* page)
     }
 }
 
-static void stringresizeprotected(lua_State* L, int newsize)
+void stringresizeprotected(lua_State* L, int newsize)
 {
     struct CallContext
     {
@@ -689,7 +689,7 @@ static void stringresizeprotected(lua_State* L, int newsize)
     LUAU_ASSERT(status == LUA_OK || status == LUA_ERRMEM);
 }
 
-static void shrinkbuffers(lua_State* L)
+void shrinkbuffers(lua_State* L)
 {
     global_State* g = L->global;
     // check size of string hash
@@ -697,7 +697,7 @@ static void shrinkbuffers(lua_State* L)
         stringresizeprotected(L, g->strt.size / 2); // table is too big
 }
 
-static void shrinkbuffersfull(lua_State* L)
+void shrinkbuffersfull(lua_State* L)
 {
     global_State* g = L->global;
     // check size of string hash
@@ -708,7 +708,7 @@ static void shrinkbuffersfull(lua_State* L)
         stringresizeprotected(L, hashsize); // table is too big
 }
 
-static bool deletegco(void* context, lua_Page* page, GCObject* gco)
+bool deletegco(void* context, lua_Page* page, GCObject* gco)
 {
     lua_State* L = (lua_State*)context;
     freeobj(L, gco, page);
@@ -729,7 +729,7 @@ void luaC_freeall(lua_State* L)
     LUAU_ASSERT(L->global->strt.nuse == 0);
 }
 
-static void markmt(global_State* g)
+void markmt(global_State* g)
 {
     int i;
     for (i = 0; i < LUA_T_COUNT; i++)
@@ -738,7 +738,7 @@ static void markmt(global_State* g)
 }
 
 // mark root set
-static void markroot(lua_State* L)
+void markroot(lua_State* L)
 {
     global_State* g = L->global;
     g->gray = NULL;
@@ -752,7 +752,7 @@ static void markroot(lua_State* L)
     g->gcstate = GCSpropagate;
 }
 
-static size_t remarkupvals(global_State* g)
+size_t remarkupvals(global_State* g)
 {
     size_t work = 0;
 
@@ -771,7 +771,7 @@ static size_t remarkupvals(global_State* g)
     return work;
 }
 
-static size_t clearupvals(lua_State* L)
+size_t clearupvals(lua_State* L)
 {
     global_State* g = L->global;
 
@@ -805,7 +805,7 @@ static size_t clearupvals(lua_State* L)
     return work;
 }
 
-static size_t atomic(lua_State* L)
+size_t atomic(lua_State* L)
 {
     global_State* g = L->global;
     LUAU_ASSERT(g->gcstate == GCSatomic);
@@ -870,7 +870,7 @@ static size_t atomic(lua_State* L)
 }
 
 // a version of generic luaM_visitpage specialized for the main sweep stage
-static int sweepgcopage(lua_State* L, lua_Page* page)
+int sweepgcopage(lua_State* L, lua_Page* page)
 {
     char* start;
     char* end;
@@ -916,7 +916,7 @@ static int sweepgcopage(lua_State* L, lua_Page* page)
     return int(end - start) / blockSize;
 }
 
-static size_t gcstep(lua_State* L, size_t limit)
+size_t gcstep(lua_State* L, size_t limit)
 {
     size_t cost = 0;
     global_State* g = L->global;
@@ -1013,7 +1013,7 @@ static size_t gcstep(lua_State* L, size_t limit)
     return cost;
 }
 
-static int64_t getheaptriggererroroffset(global_State* g)
+int64_t getheaptriggererroroffset(global_State* g)
 {
     // adjust for error using Proportional-Integral controller
     // https://en.wikipedia.org/wiki/PID_controller
@@ -1045,7 +1045,7 @@ static int64_t getheaptriggererroroffset(global_State* g)
     return int64_t(totalTerm * 1024);
 }
 
-static size_t getheaptrigger(global_State* g, size_t heapgoal)
+size_t getheaptrigger(global_State* g, size_t heapgoal)
 {
     // adjust threshold based on a guess of how many bytes will be allocated between the cycle start and sweep phase
     // our goal is to begin the sweep when used memory has reached the heap goal

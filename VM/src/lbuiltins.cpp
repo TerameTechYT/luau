@@ -25,8 +25,6 @@
 #endif
 #endif
 
-LUAU_FASTFLAG(LuauVectorLerp)
-
 // luauF functions implement FASTCALL instruction that performs a direct execution of some builtin functions from the VM
 // The rule of thumb is that FASTCALL functions can not call user code, yield, fail, or reallocate stack.
 // If types of the arguments mismatch, luauF_* needs to return -1 and the execution will fall back to the usual call path
@@ -36,7 +34,7 @@ LUAU_FASTFLAG(LuauVectorLerp)
 // Because of this, and the fact that "extra" returned values will be ignored, implementations below typically check that nresults is <= expected
 // number, which covers the LUA_MULTRET case.
 
-static int luauF_assert(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_assert(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults == 0 && !l_isfalse(arg0))
     {
@@ -46,7 +44,7 @@ static int luauF_assert(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_abs(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_abs(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -58,7 +56,7 @@ static int luauF_abs(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_acos(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_acos(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -70,7 +68,7 @@ static int luauF_acos(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_asin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_asin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -82,7 +80,7 @@ static int luauF_asin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_atan2(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_atan2(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -95,7 +93,7 @@ static int luauF_atan2(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
     return -1;
 }
 
-static int luauF_atan(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_atan(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -108,7 +106,7 @@ static int luauF_atan(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
 }
 
 LUAU_FASTMATH_BEGIN
-static int luauF_ceil(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_ceil(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -121,7 +119,7 @@ static int luauF_ceil(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
 }
 LUAU_FASTMATH_END
 
-static int luauF_cosh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_cosh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -133,7 +131,7 @@ static int luauF_cosh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_cos(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_cos(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -145,7 +143,7 @@ static int luauF_cos(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_deg(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_deg(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -158,7 +156,7 @@ static int luauF_deg(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_exp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_exp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -171,7 +169,7 @@ static int luauF_exp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
 }
 
 LUAU_FASTMATH_BEGIN
-static int luauF_floor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_floor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -184,7 +182,7 @@ static int luauF_floor(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
 }
 LUAU_FASTMATH_END
 
-static int luauF_fmod(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_fmod(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -197,7 +195,7 @@ static int luauF_fmod(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_frexp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_frexp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 2 && ttisnumber(arg0))
     {
@@ -212,7 +210,7 @@ static int luauF_frexp(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
     return -1;
 }
 
-static int luauF_ldexp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_ldexp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -225,7 +223,7 @@ static int luauF_ldexp(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
     return -1;
 }
 
-static int luauF_log10(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_log10(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -237,7 +235,7 @@ static int luauF_log10(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
     return -1;
 }
 
-static int luauF_log(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_log(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -273,7 +271,7 @@ static int luauF_log(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_max(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_max(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -299,7 +297,7 @@ static int luauF_max(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_min(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_min(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -325,7 +323,7 @@ static int luauF_min(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_modf(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_modf(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 2 && ttisnumber(arg0))
     {
@@ -340,7 +338,7 @@ static int luauF_modf(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_pow(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_pow(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -353,7 +351,7 @@ static int luauF_pow(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_rad(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_rad(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -366,7 +364,7 @@ static int luauF_rad(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_sinh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_sinh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -378,7 +376,7 @@ static int luauF_sinh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_sin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_sin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -391,7 +389,7 @@ static int luauF_sin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
 }
 
 LUAU_FASTMATH_BEGIN
-static int luauF_sqrt(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_sqrt(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -404,7 +402,7 @@ static int luauF_sqrt(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
 }
 LUAU_FASTMATH_END
 
-static int luauF_tanh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_tanh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -416,7 +414,7 @@ static int luauF_tanh(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_tan(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_tan(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -428,7 +426,7 @@ static int luauF_tan(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_arshift(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_arshift(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -455,7 +453,7 @@ static int luauF_arshift(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_band(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_band(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -487,7 +485,7 @@ static int luauF_band(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_bnot(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_bnot(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -504,7 +502,7 @@ static int luauF_bnot(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_bor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_bor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -536,7 +534,7 @@ static int luauF_bor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_bxor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_bxor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -568,7 +566,7 @@ static int luauF_bxor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_btest(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_btest(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -600,7 +598,7 @@ static int luauF_btest(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
     return -1;
 }
 
-static int luauF_extract(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_extract(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -641,7 +639,7 @@ static int luauF_extract(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_lrotate(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_lrotate(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -666,7 +664,7 @@ static int luauF_lrotate(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_lshift(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_lshift(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -691,7 +689,7 @@ static int luauF_lshift(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_replace(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_replace(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 3 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args) && ttisnumber(args + 1))
     {
@@ -734,7 +732,7 @@ static int luauF_replace(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_rrotate(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_rrotate(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -759,7 +757,7 @@ static int luauF_rrotate(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_rshift(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_rshift(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -784,7 +782,7 @@ static int luauF_rshift(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_type(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_type(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1)
     {
@@ -798,7 +796,7 @@ static int luauF_type(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_byte(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_byte(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && ttisstring(arg0) && ttisnumber(args))
     {
@@ -828,7 +826,7 @@ static int luauF_byte(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_char(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_char(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     char buffer[8];
 
@@ -872,7 +870,7 @@ static int luauF_char(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_len(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_len(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisstring(arg0))
     {
@@ -885,7 +883,7 @@ static int luauF_len(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_typeof(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_typeof(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1)
     {
@@ -898,7 +896,7 @@ static int luauF_typeof(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_sub(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_sub(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 3 && nresults <= 1 && ttisstring(arg0) && ttisnumber(args) && ttisnumber(args + 1))
     {
@@ -919,7 +917,7 @@ static int luauF_sub(lua_State* L, StkId res, TValue* arg0, int nresults, StkId 
     return -1;
 }
 
-static int luauF_clamp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_clamp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 3 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args) && ttisnumber(args + 1))
     {
@@ -940,7 +938,7 @@ static int luauF_clamp(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
     return -1;
 }
 
-static int luauF_sign(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_sign(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -953,7 +951,7 @@ static int luauF_sign(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
 }
 
 LUAU_FASTMATH_BEGIN
-static int luauF_round(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_round(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -966,7 +964,7 @@ static int luauF_round(lua_State* L, StkId res, TValue* arg0, int nresults, StkI
 }
 LUAU_FASTMATH_END
 
-static int luauF_rawequal(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_rawequal(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1)
     {
@@ -977,7 +975,7 @@ static int luauF_rawequal(lua_State* L, StkId res, TValue* arg0, int nresults, S
     return -1;
 }
 
-static int luauF_rawget(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_rawget(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttistable(arg0))
     {
@@ -988,7 +986,7 @@ static int luauF_rawget(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_rawset(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_rawset(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 3 && nresults <= 1 && ttistable(arg0))
     {
@@ -1013,7 +1011,7 @@ static int luauF_rawset(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_tinsert(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_tinsert(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams == 2 && nresults <= 0 && ttistable(arg0))
     {
@@ -1030,7 +1028,7 @@ static int luauF_tinsert(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_tunpack(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_tunpack(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults < 0 && ttistable(arg0))
     {
@@ -1055,7 +1053,7 @@ static int luauF_tunpack(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_vector(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vector(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args))
     {
@@ -1089,7 +1087,7 @@ static int luauF_vector(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_countlz(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_countlz(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -1112,7 +1110,7 @@ static int luauF_countlz(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_countrz(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_countrz(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -1135,7 +1133,7 @@ static int luauF_countrz(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_select(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_select(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams == 1 && nresults == 1)
     {
@@ -1163,7 +1161,7 @@ static int luauF_select(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_rawlen(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_rawlen(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1)
     {
@@ -1184,7 +1182,7 @@ static int luauF_rawlen(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
     return -1;
 }
 
-static int luauF_extractk(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_extractk(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     // args is known to contain a number constant with packed in-range f/w
     if (nparams >= 2 && nresults <= 1 && ttisnumber(arg0))
@@ -1209,7 +1207,7 @@ static int luauF_extractk(lua_State* L, StkId res, TValue* arg0, int nresults, S
     return -1;
 }
 
-static int luauF_getmetatable(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_getmetatable(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1)
     {
@@ -1243,7 +1241,7 @@ static int luauF_getmetatable(lua_State* L, StkId res, TValue* arg0, int nresult
     return -1;
 }
 
-static int luauF_setmetatable(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_setmetatable(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     // note: setmetatable(_, nil) is rare so we use fallback for it to optimize the fast path
     if (nparams >= 2 && nresults <= 1 && ttistable(arg0) && ttistable(args))
@@ -1263,7 +1261,7 @@ static int luauF_setmetatable(lua_State* L, StkId res, TValue* arg0, int nresult
     return -1;
 }
 
-static int luauF_tonumber(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_tonumber(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams == 1 && nresults <= 1)
     {
@@ -1289,7 +1287,7 @@ static int luauF_tonumber(lua_State* L, StkId res, TValue* arg0, int nresults, S
     return -1;
 }
 
-static int luauF_tostring(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_tostring(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1)
     {
@@ -1330,7 +1328,7 @@ static int luauF_tostring(lua_State* L, StkId res, TValue* arg0, int nresults, S
     return -1;
 }
 
-static int luauF_byteswap(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_byteswap(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -1351,7 +1349,7 @@ static int luauF_byteswap(lua_State* L, StkId res, TValue* arg0, int nresults, S
 #define checkoutofbounds(offset, len, accessize) (uint64_t(unsigned(offset)) + (accessize - 1) >= uint64_t(len))
 
 template<typename T>
-static int luauF_readinteger(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_readinteger(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
 #if !defined(LUAU_BIG_ENDIAN)
     if (nparams >= 2 && nresults <= 1 && ttisbuffer(arg0) && ttisnumber(args))
@@ -1372,7 +1370,7 @@ static int luauF_readinteger(lua_State* L, StkId res, TValue* arg0, int nresults
 }
 
 template<typename T>
-static int luauF_writeinteger(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_writeinteger(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
 #if !defined(LUAU_BIG_ENDIAN)
     if (nparams >= 3 && nresults <= 0 && ttisbuffer(arg0) && ttisnumber(args) && ttisnumber(args + 1))
@@ -1396,7 +1394,7 @@ static int luauF_writeinteger(lua_State* L, StkId res, TValue* arg0, int nresult
 }
 
 template<typename T>
-static int luauF_readfp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_readfp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
 #if !defined(LUAU_BIG_ENDIAN)
     if (nparams >= 2 && nresults <= 1 && ttisbuffer(arg0) && ttisnumber(args))
@@ -1422,7 +1420,7 @@ static int luauF_readfp(lua_State* L, StkId res, TValue* arg0, int nresults, Stk
 }
 
 template<typename T>
-static int luauF_writefp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_writefp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
 #if !defined(LUAU_BIG_ENDIAN)
     if (nparams >= 3 && nresults <= 0 && ttisbuffer(arg0) && ttisnumber(args) && ttisnumber(args + 1))
@@ -1446,7 +1444,7 @@ static int luauF_writefp(lua_State* L, StkId res, TValue* arg0, int nresults, St
     return -1;
 }
 
-static int luauF_vectormagnitude(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectormagnitude(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisvector(arg0))
     {
@@ -1464,7 +1462,7 @@ static int luauF_vectormagnitude(lua_State* L, StkId res, TValue* arg0, int nres
     return -1;
 }
 
-static int luauF_vectornormalize(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectornormalize(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisvector(arg0))
     {
@@ -1486,7 +1484,7 @@ static int luauF_vectornormalize(lua_State* L, StkId res, TValue* arg0, int nres
     return -1;
 }
 
-static int luauF_vectorcross(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectorcross(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisvector(arg0) && ttisvector(args))
     {
@@ -1501,7 +1499,7 @@ static int luauF_vectorcross(lua_State* L, StkId res, TValue* arg0, int nresults
     return -1;
 }
 
-static int luauF_vectordot(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectordot(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisvector(arg0) && ttisvector(args))
     {
@@ -1520,7 +1518,7 @@ static int luauF_vectordot(lua_State* L, StkId res, TValue* arg0, int nresults, 
     return -1;
 }
 
-static int luauF_vectorfloor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectorfloor(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisvector(arg0))
     {
@@ -1538,7 +1536,7 @@ static int luauF_vectorfloor(lua_State* L, StkId res, TValue* arg0, int nresults
     return -1;
 }
 
-static int luauF_vectorceil(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectorceil(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisvector(arg0))
     {
@@ -1556,7 +1554,7 @@ static int luauF_vectorceil(lua_State* L, StkId res, TValue* arg0, int nresults,
     return -1;
 }
 
-static int luauF_vectorabs(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectorabs(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisvector(arg0))
     {
@@ -1574,7 +1572,7 @@ static int luauF_vectorabs(lua_State* L, StkId res, TValue* arg0, int nresults, 
     return -1;
 }
 
-static int luauF_vectorsign(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectorsign(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisvector(arg0))
     {
@@ -1592,7 +1590,7 @@ static int luauF_vectorsign(lua_State* L, StkId res, TValue* arg0, int nresults,
     return -1;
 }
 
-static int luauF_vectorclamp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectorclamp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 3 && nresults <= 1 && ttisvector(arg0) && ttisvector(args) && ttisvector(args + 1))
     {
@@ -1621,7 +1619,7 @@ static int luauF_vectorclamp(lua_State* L, StkId res, TValue* arg0, int nresults
     return -1;
 }
 
-static int luauF_vectormin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectormin(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisvector(arg0) && ttisvector(args))
     {
@@ -1662,7 +1660,7 @@ static int luauF_vectormin(lua_State* L, StkId res, TValue* arg0, int nresults, 
     return -1;
 }
 
-static int luauF_vectormax(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_vectormax(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 2 && nresults <= 1 && ttisvector(arg0) && ttisvector(args))
     {
@@ -1703,27 +1701,7 @@ static int luauF_vectormax(lua_State* L, StkId res, TValue* arg0, int nresults, 
     return -1;
 }
 
-static int luauF_vectorlerp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
-{
-    if (FFlag::LuauVectorLerp && nparams >= 3 && nresults <= 1 && ttisvector(arg0) && ttisvector(args) && ttisnumber(args + 1))
-    {
-        const float* a = vvalue(arg0);
-        const float* b = vvalue(args);
-        const float t = static_cast<float>(nvalue(args + 1));
-
-#if LUA_VECTOR_SIZE == 4
-        setvvalue(res, luai_lerpf(a[0], b[0], t), luai_lerpf(a[1], b[1], t), luai_lerpf(a[2], b[2], t), luai_lerpf(a[3], b[3], t));
-#else
-        setvvalue(res, luai_lerpf(a[0], b[0], t), luai_lerpf(a[1], b[1], t), luai_lerpf(a[2], b[2], t), 0.0f);
-#endif
-
-        return 1;
-    }
-
-    return -1;
-}
-
-static int luauF_lerp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_lerp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 3 && nresults <= 1 && ttisnumber(arg0) && ttisnumber(args) && ttisnumber(args + 1))
     {
@@ -1740,7 +1718,7 @@ static int luauF_lerp(lua_State* L, StkId res, TValue* arg0, int nresults, StkId
     return -1;
 }
 
-static int luauF_missing(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+int luauF_missing(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     return -1;
 }
@@ -1754,7 +1732,7 @@ LUAU_TARGET_SSE41 inline double roundsd_sse41(double v)
     return _mm_cvtsd_f64(rv);
 }
 
-LUAU_TARGET_SSE41 static int luauF_floor_sse41(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+LUAU_TARGET_SSE41 int luauF_floor_sse41(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -1766,7 +1744,7 @@ LUAU_TARGET_SSE41 static int luauF_floor_sse41(lua_State* L, StkId res, TValue* 
     return -1;
 }
 
-LUAU_TARGET_SSE41 static int luauF_ceil_sse41(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+LUAU_TARGET_SSE41 int luauF_ceil_sse41(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -1778,7 +1756,7 @@ LUAU_TARGET_SSE41 static int luauF_ceil_sse41(lua_State* L, StkId res, TValue* a
     return -1;
 }
 
-LUAU_TARGET_SSE41 static int luauF_round_sse41(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
+LUAU_TARGET_SSE41 int luauF_round_sse41(lua_State* L, StkId res, TValue* arg0, int nresults, StkId args, int nparams)
 {
     if (nparams >= 1 && nresults <= 1 && ttisnumber(arg0))
     {
@@ -1793,7 +1771,7 @@ LUAU_TARGET_SSE41 static int luauF_round_sse41(lua_State* L, StkId res, TValue* 
     return -1;
 }
 
-static bool luau_hassse41()
+bool luau_hassse41()
 {
     int cpuinfo[4] = {};
 #ifdef _MSC_VER
@@ -1936,8 +1914,6 @@ const luau_FastFunction luauF_table[256] = {
     luauF_vectormax,
 
     luauF_lerp,
-
-    luauF_vectorlerp,
 
 // When adding builtins, add them above this line; what follows is 64 "dummy" entries with luauF_missing fallback.
 // This is important so that older versions of the runtime that don't support newer builtins automatically fall back via luauF_missing.

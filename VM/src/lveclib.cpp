@@ -343,13 +343,6 @@ int luaopen_vector(lua_State* L)
 {
     luaL_register(L, LUA_VECLIBNAME, vectorlib);
 
-    if (FFlag::LuauVectorLerp)
-    {
-        // To unflag put {"lerp", vector_lerp} in the `vectorlib` table
-        lua_pushcfunction(L, vector_lerp, "lerp");
-        lua_setfield(L, -2, "lerp");
-    }
-
 #if LUA_VECTOR_SIZE == 4
     lua_pushvector(L, 0.0f, 0.0f, 0.0f, 0.0f);
     lua_setfield(L, -2, "zero");
