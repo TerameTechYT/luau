@@ -1655,7 +1655,7 @@ const luaL_Reg strlib[] = {
     {NULL, NULL},
 };
 
-static void createmetatable(lua_State* L)
+void createmetatable(lua_State* L)
 {
     lua_createtable(L, 0, 1); // create metatable for strings
     lua_pushliteral(L, "");   // dummy string

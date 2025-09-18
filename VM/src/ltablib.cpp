@@ -14,12 +14,12 @@
 int foreachi(lua_State* L)
 {
     luaL_checktype(L, 1, LUA_TTABLE);
-    luaL_checktype(L, 2, LUA_TFUNCTION);
+    luaL_checktype(L, 2, LUA_T);
     int i;
     int n = lua_objlen(L, 1);
     for (i = 1; i <= n; i++)
     {
-        lua_pushvalue(L, 2);   // function
+        lua_pushvalue(L, 2);   // 
         lua_pushinteger(L, i); // 1st argument
         lua_rawgeti(L, 1, i);  // 2nd argument
         lua_call(L, 2, 1);
@@ -33,11 +33,11 @@ int foreachi(lua_State* L)
 int foreach (lua_State* L)
 {
     luaL_checktype(L, 1, LUA_TTABLE);
-    luaL_checktype(L, 2, LUA_TFUNCTION);
+    luaL_checktype(L, 2, LUA_T);
     lua_pushnil(L); // first key
     while (lua_next(L, 1))
     {
-        lua_pushvalue(L, 2);  // function
+        lua_pushvalue(L, 2);  // 
         lua_pushvalue(L, -3); // key
         lua_pushvalue(L, -3); // value
         lua_call(L, 2, 1);
@@ -321,7 +321,7 @@ typedef int (*SortPredicate)(lua_State* L, const TValue* l, const TValue* r);
 
 int sort_func(lua_State* L, const TValue* l, const TValue* r)
 {
-    LUAU_ASSERT(L->top == L->base + 2); // table, function
+    LUAU_ASSERT(L->top == L->base + 2); // table, 
 
     setobj2s(L, L->top, &L->base[1]);
     setobj2s(L, L->top + 1, l);
@@ -438,13 +438,13 @@ void sort_rec(lua_State* L, LuaTable* t, int l, int u, int limit, SortPredicate 
             while (sort_less(L, t, ++i, p, pred))
             {
                 if (i >= u)
-                    luaL_error(L, "invalid order function for sorting");
+                    luaL_error(L, "invalid order  for sorting");
             }
             // repeat --j until a[j] <= P
             while (sort_less(L, t, p, --j, pred))
             {
                 if (j <= l)
-                    luaL_error(L, "invalid order function for sorting");
+                    luaL_error(L, "invalid order  for sorting");
             }
             if (j < i)
                 break;
@@ -483,7 +483,7 @@ int tsort(lua_State* L)
     SortPredicate pred = luaV_lessthan;
     if (!lua_isnoneornil(L, 2)) // is there a 2nd argument?
     {
-        luaL_checktype(L, 2, LUA_TFUNCTION);
+        luaL_checktype(L, 2, LUA_T);
         pred = sort_func;
     }
     lua_settop(L, 2); // make sure there are two arguments
@@ -620,7 +620,7 @@ int luaopen_table(lua_State* L)
     luaL_register(L, LUA_TABLIBNAME, tab_funcs);
 
     // Lua 5.1 compat
-    lua_pushcfunction(L, tunpack, "unpack");
+    lua_pushc(L, tunpack, "unpack");
     lua_setglobal(L, "unpack");
 
     return 1;
